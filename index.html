@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BancaOS — Gestão de Apostas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="icon" type="image/png" href="./favIc.png">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="./js/app.js" defer></script>
+</head>
+<body>
+
+<div class="max-w-4xl mx-auto px-4 py-8">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-black tracking-tight" style="font-size:clamp(20px,4vw,28px)">
+        BANCA<span style="color:var(--accent)">OS</span>
+      </h1>
+      <p class="mono text-xs mt-1" style="color:var(--muted)">GESTÃO DE UNIDADES</p>
+    </div>
+    <button class="btn btn-ghost" onclick="confirmReset()">↺ Resetar</button>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="grid grid-cols-2 gap-3 mb-4" id="statsRow">
+    <!-- rendered by JS -->
+  </div>
+
+  <div class="grid gap-3 mb-3" style="grid-template-columns: repeat(auto-fit, minmax(240px,1fr))">
+    <!-- ROI + PnL -->
+    <div class="stat-card flex items-center justify-between">
+      <div>
+        <p class="mono" style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em">ROI Total</p>
+        <p class="mono font-bold text-2xl mt-1" id="roiDisplay">—</p>
+      </div>
+      <div style="border-left:1px solid var(--border); padding-left:20px">
+        <p class="mono" style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em">Lucro Líquido</p>
+        <p class="mono font-bold text-xl mt-1" id="pnlDisplay">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid gap-6" style="grid-template-columns: repeat(auto-fit, minmax(300px,1fr))">
+
+    <!-- Left: Config + Form -->
+    <div class="flex flex-col gap-4">
+
+      <!-- Config -->
+      <div class="card">
+        <p class="mono text-xs mb-4" style="color:var(--accent); text-transform:uppercase; letter-spacing:.12em">⚙ Configuração</p>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label>Banca Total (R$)</label>
+            <input type="number" id="bancaTotal" placeholder="1000.00" step="0.01" min="0" oninput="onConfigChange()">
+          </div>
+          <div>
+            <label>% por Unidade</label>
+            <input type="number" id="unitPercent" placeholder="1" step="0.1" min="0.1" max="100" oninput="onConfigChange()">
+          </div>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--surface2); border:1px solid var(--border)">
+          <span class="mono text-xs" style="color:var(--muted)">1 UNIDADE =</span>
+          <span class="mono font-bold" id="unitValue" style="color:var(--accent)">R$ 0,00</span>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div class="card">
+        <p class="mono text-xs mb-4" style="color:var(--accent3); text-transform:uppercase; letter-spacing:.12em">✦ Nova Aposta</p>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label>Unidades</label>
+            <input type="text" inputmode="decimal" id="fUnits" placeholder="ex: 05 → 0.5" value="10">
+          </div>
+          <div>
+            <label>Odd</label>
+            <input type="text" inputmode="decimal" id="fOdd" placeholder="ex: 145 → 1.45" value="200">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label>Observação</label>
+          <input type="text" id="fNote" placeholder="Time / Campeonato / Fonte">
+        </div>
+
+        <div class="flex items-center justify-between mb-4 p-3 rounded-lg" style="background:var(--surface2); border:1px solid var(--border)">
+          <span class="mono text-xs" style="color:var(--muted)">INVESTIMENTO</span>
+          <span class="mono font-bold" id="betPreview" style="color:var(--accent3)">R$ 0,00</span>
+        </div>
+
+        <button class="btn btn-accent w-full" onclick="launchBet()">▶ Lançar Aposta</button>
+      </div>
+    </div>
+
+    <!-- Right: History -->
+    <div class="card flex flex-col" style="min-height:400px">
+      <div class="flex items-center justify-between mb-4">
+        <p class="mono text-xs" style="color:var(--text); text-transform:uppercase; letter-spacing:.12em">Histórico</p>
+        <button class="btn btn-ghost" style="padding:5px 12px; font-size:11px" onclick="exportCSV()">↓ CSV</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap gap-2 mb-4" id="filterRow">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Todas</button>
+        <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pendentes</button>
+        <button class="filter-btn" data-filter="green" onclick="setFilter('green')">Greens</button>
+        <button class="filter-btn" data-filter="red" onclick="setFilter('red')">Reds</button>
+      </div>
+
+      <div class="scrollable flex-1" id="betList">
+        <p class="mono text-xs text-center mt-16" style="color:var(--muted)">Nenhuma aposta ainda.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PIX Footer -->
+<div class="max-w-4xl mx-auto px-4 pb-10 mt-6">
+  <div class="card flex flex-col items-center text-center gap-4" style="border-color:rgba(0,229,160,0.15)">
+    <p class="mono text-xs" style="color:var(--muted); text-transform:uppercase; letter-spacing:.12em">♥ Apoie o projeto</p>
+    <p style="font-size:14px; color:var(--text); max-width:380px; line-height:1.6">
+      Nos ajude a manter o gerenciador gratuito e sem anúncios.<br>
+      Qualquer valor é muito bem-vindo!
+    </p>
+
+    <!-- QR Code -->
+    <img src="./qrcode.png" width="160" height="160" style="border-radius:10px; border:2px solid var(--border)" alt="QR Code PIX">
+
+    <!-- Chave PIX -->
+    <div style="width:100%; max-width:400px">
+      <p class="mono text-xs mb-2" style="color:var(--muted)">CHAVE PIX</p>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 p-3 rounded-lg mono text-xs truncate" style="background:var(--surface2); border:1px solid var(--border); color:var(--accent); letter-spacing:.03em" id="pixKey">
+          a765dcc7-8947-4323-b50d-ef17e48e18b2
+        </div>
+        <button class="btn btn-ghost" style="padding:10px 14px; shrink:0" onclick="copyPix()" title="Copiar chave">⧉</button>
+      </div>
+      <p class="mono text-xs mt-2" id="pixCopyMsg" style="color:var(--accent); opacity:0; transition:opacity .3s">Chave copiada ✓</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+</body>
+</html>
