@@ -233,6 +233,7 @@
         <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Todas</button>
         <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pendentes</button>
         <button class="filter-btn" data-filter="green" onclick="setFilter('green')">Greens</button>
+        <button class="filter-btn" data-filter="cashout" onclick="setFilter('cashout')">Cash Out</button>
         <button class="filter-btn" data-filter="red" onclick="setFilter('red')">Reds</button>
       </div>
 
@@ -292,6 +293,31 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- Modal: Cash Out -->
+<div id="cashoutModal" style="
+  display:none; position:fixed; inset:0; z-index:2000;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;">
+  <div style="
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:24px; width:100%; max-width:340px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <p class="mono" style="font-size:10px; color:var(--accent3); text-transform:uppercase; letter-spacing:.12em; margin-bottom:4px">💰 Cash Out</p>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5">Qual o valor que você recebeu no cash out?</p>
+    <label style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:6px">Valor Recebido (R$)</label>
+    <input type="text" inputmode="decimal" id="cashoutAmount" class="num-input"
+      placeholder="ex: 45.00"
+      style="margin-bottom:16px; font-size:18px; padding:12px 16px; font-weight:700; border-color:var(--accent3);">
+    <div class="flex gap-2">
+      <button class="btn btn-ghost flex-1" onclick="closeCashout()">Cancelar</button>
+      <button class="btn flex-1" onclick="confirmCashout()"
+        style="background:rgba(255,209,102,0.15); color:var(--accent3); border:1px solid rgba(255,209,102,0.35); font-weight:700;">
+        Confirmar C/O
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

@@ -2,9 +2,10 @@
 let betMode = 'unit'; // 'unit' | 'free'
 
 let state = {
-  bancaTotal: 1000,
-  bancaCurrent: 1000,
+  bancaTotal: 0,
+  bancaCurrent: 0,
   unitPercent: 1,
+  betMode: 'unit',
   bets: [],
   filter: 'all'
 };
@@ -30,6 +31,9 @@ document.getElementById('unitPercent').value =
   percentDigits.length === 1 ? percentDigits + '.0'
   : (parseInt(percentDigits, 10) / 10).toFixed(1);
 renderAll();
+
+// restaurar modo de aposta salvo
+setBetMode(state.betMode || 'unit');
 
 // ─── Welcome Overlay ──────────────────────────────────────────────────────────
 (function() {
@@ -152,6 +156,8 @@ function updatePreview() {
 // ─── Bet Mode Toggle ─────────────────────────────────────────────────────────
 function setBetMode(mode) {
   betMode = mode;
+  state.betMode = mode;
+  save();
   const isUnit = mode === 'unit';
   document.getElementById('unitModeFields').style.display = isUnit ? '' : 'none';
   document.getElementById('freeModeFields').style.display = isUnit ? 'none' : '';
@@ -222,6 +228,58 @@ function red(id) {
   toast('Red registrado.');
 }
 
+// ─── Cash Out ─────────────────────────────────────────────────────────────────
+let _cashoutBetId = null;
+
+function openCashout(id) {
+  _cashoutBetId = id;
+  const bet = state.bets.find(b => b.id === id);
+  if (!bet) return;
+  const modal = document.getElementById('cashoutModal');
+  document.getElementById('cashoutAmount').value = '';
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('cashoutAmount').focus(), 50);
+}
+
+function closeCashout() {
+  document.getElementById('cashoutModal').style.display = 'none';
+  _cashoutBetId = null;
+}
+
+document.getElementById('cashoutModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCashout();
+});
+
+document.getElementById('cashoutAmount').addEventListener('blur', function() {
+  const v = parseFloat(this.value.replace(',', '.'));
+  if (!isNaN(v) && v > 0) this.value = v.toFixed(2);
+});
+
+document.getElementById('cashoutAmount').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') confirmCashout();
+});
+
+function confirmCashout() {
+  const v = parseFloat(document.getElementById('cashoutAmount').value.replace(',', '.'));
+  if (!v || v <= 0) return toast('Informe o valor recebido no cash out.');
+
+  const bet = state.bets.find(b => b.id === _cashoutBetId);
+  if (!bet || bet.status !== 'pending') return;
+
+  bet.status   = 'green';
+  bet.cashout  = true;
+  bet.potential = v;
+  bet.profit    = v - bet.amount;
+
+  // credita o valor do cashout na banca
+  state.bancaCurrent += v;
+
+  save(); renderAll();
+  closeCashout();
+  toast(`Cash Out de ${fmt(v)} registrado ✓`);
+}
+
+
 // ─── Filter ──────────────────────────────────────────────────────────────────
 function setFilter(f) {
   state.filter = f;
@@ -279,7 +337,11 @@ function renderBets() {
   const container = document.getElementById('betList');
   let bets = state.bets;
 
-  if (state.filter !== 'all') bets = bets.filter(b => b.status === state.filter);
+  if (state.filter === 'cashout') {
+    bets = bets.filter(b => b.cashout === true);
+  } else if (state.filter !== 'all') {
+    bets = bets.filter(b => b.status === state.filter && !b.cashout);
+  }
 
   if (!bets.length) {
     container.innerHTML = `<p class="mono text-xs text-center mt-16" style="color:var(--muted)">Nenhum registro.</p>`;
@@ -291,15 +353,33 @@ function renderBets() {
     const dateStr = d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' ' +
                     d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 
-    const rowClass = `bet-row ${bet.status}-row`;
-    const badgeMap = { pending: 'badge-pending', green: 'badge-green', red: 'badge-red' };
-    const labelMap = { pending: 'Aguard.', green: 'Green', red: 'Red' };
+    const isCashout = bet.cashout === true;
+    const rowClass  = `bet-row ${isCashout ? 'green-row' : bet.status + '-row'}`;
+
+    const badgeClass = isCashout ? 'badge-cashout'
+      : bet.status === 'green' ? 'badge-green'
+      : bet.status === 'red'   ? 'badge-red'
+      : 'badge-pending';
+    const badgeLabel = isCashout ? 'C/O'
+      : bet.status === 'green' ? 'Green'
+      : bet.status === 'red'   ? 'Red'
+      : 'Aguard.';
 
     const actions = bet.status === 'pending' ? `
       <div class="flex gap-2 mt-3">
         <button class="btn btn-green flex-1" onclick="green(${bet.id})">✓ Green</button>
+        <button class="btn flex-1" onclick="openCashout(${bet.id})"
+          style="background:rgba(255,159,67,0.12);color:#ff9f43;border:1px solid rgba(255,159,67,0.3);">💰 C/O</button>
         <button class="btn btn-red flex-1" onclick="red(${bet.id})">✗ Red</button>
       </div>` : '';
+
+    const profitDisplay = isCashout
+      ? `<span class="mono" style="font-size:11px;color:#ff9f43">${bet.profit >= 0 ? '+' : ''}${fmt(bet.profit)}</span>`
+      : bet.status === 'green'
+        ? `<span class="mono" style="font-size:11px;color:var(--accent)">+${fmt(bet.profit)}</span>`
+        : bet.status === 'red'
+          ? `<span class="mono" style="font-size:11px;color:var(--accent2)">-${fmt(bet.amount)}</span>`
+          : '';
 
     return `
       <div class="${rowClass}">
@@ -314,9 +394,8 @@ function renderBets() {
           </div>
         </div>
         <div class="flex items-center justify-between mt-2">
-          <span class="badge ${badgeMap[bet.status]}">${labelMap[bet.status]}</span>
-          ${bet.status === 'green' ? `<span class="mono" style="font-size:11px; color:var(--accent)">+${fmt(bet.profit)}</span>` : ''}
-          ${bet.status === 'red' ? `<span class="mono" style="font-size:11px; color:var(--accent2)">-${fmt(bet.amount)}</span>` : ''}
+          <span class="badge ${badgeClass}">${badgeLabel}</span>
+          ${profitDisplay}
         </div>
         ${actions}
       </div>`;
