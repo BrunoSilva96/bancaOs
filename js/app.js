@@ -1,4 +1,6 @@
 // ─── State ──────────────────────────────────────────────────────────────────
+let betMode = 'unit'; // 'unit' | 'free'
+
 let state = {
   bancaTotal: 1000,
   bancaCurrent: 1000,
@@ -21,64 +23,38 @@ function load() {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 load();
-document.getElementById('bancaTotal').value = parseFloat(state.bancaTotal).toFixed(2);
 
 // inicializar dígitos brutos do % a partir do estado salvo
 let percentDigits = String(Math.round(state.unitPercent * 10)).replace('.', '');
 document.getElementById('unitPercent').value =
   percentDigits.length === 1 ? percentDigits + '.0'
   : (parseInt(percentDigits, 10) / 10).toFixed(1);
-// se já havia valor salvo, travar campo
-if (state.bancaTotal > 0) lockBanca();
 renderAll();
 
-// ─── Config ──────────────────────────────────────────────────────────────────
-function lockBanca() {
-  const input = document.getElementById('bancaTotal');
-  const btn = document.getElementById('bancaLockBtn');
-  input.readOnly = true;
-  input.style.opacity = '0.7';
-  input.style.borderColor = 'var(--border)';
-  btn.textContent = '✏ Editar';
-  btn.title = 'Clique para editar';
-  btn.style.borderColor = 'var(--accent)';
-  btn.style.color = 'var(--accent)';
-}
-
-function unlockBanca() {
-  const input = document.getElementById('bancaTotal');
-  const btn = document.getElementById('bancaLockBtn');
-  input.readOnly = false;
-  input.style.opacity = '1';
-  input.style.borderColor = 'var(--accent)';
-  btn.textContent = '✓';
-  btn.title = 'Confirmar valor';
-  btn.style.borderColor = 'var(--accent)';
-  btn.style.color = 'var(--accent)';
-  input.focus();
-}
-
-function toggleBancaLock() {
-  const input = document.getElementById('bancaTotal');
-  if (input.readOnly) {
-    unlockBanca();
-  } else {
-    if (!parseFloat(input.value)) return toast('Informe o investimento inicial.');
-    onConfigChange();
-    lockBanca();
-    toast('Investimento inicial confirmado ✓');
+// ─── Welcome Overlay ──────────────────────────────────────────────────────────
+(function() {
+  if (!localStorage.getItem('bancaos_welcomed')) {
+    const overlay = document.getElementById('welcomeOverlay');
+    overlay.style.display = 'flex';
+    // pequena animação de entrada
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity .4s';
+    requestAnimationFrame(() => requestAnimationFrame(() => overlay.style.opacity = '1'));
   }
+})();
+
+function dismissWelcome() {
+  const overlay = document.getElementById('welcomeOverlay');
+  overlay.style.transition = 'opacity .35s';
+  overlay.style.opacity = '0';
+  setTimeout(() => { overlay.style.display = 'none'; }, 360);
+  localStorage.setItem('bancaos_welcomed', '1');
 }
 
+// ─── Config ──────────────────────────────────────────────────────────────────
 function onConfigChange() {
-  const bt = parseFloat(document.getElementById('bancaTotal').value) || 0;
   const up = parseFloat(document.getElementById('unitPercent').value) || 1;
-  state.bancaTotal = bt;
   state.unitPercent = up;
-  // recalculate current banca relative to changes: keep the delta invested
-  // current = total - sum of pending bets
-  const invested = state.bets.filter(b => b.status === 'pending').reduce((a, b) => a + b.amount, 0);
-  state.bancaCurrent = bt - invested;
   save();
   renderAll();
 }
@@ -124,38 +100,97 @@ document.getElementById('fUnits').addEventListener('input', function() {
   applyMask(this, 10, 1);
 });
 
-document.getElementById('bancaTotal').addEventListener('input', function() {
-  applyMask(this, 100, 2);
-  onConfigChange();
+// Depósito — formata ao sair
+document.getElementById('depositAmount').addEventListener('blur', function() {
+  const v = parseFloat(this.value.replace(',', '.'));
+  if (!isNaN(v) && v > 0) this.value = v.toFixed(2);
+});
+document.getElementById('depositAmount').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doDeposit();
 });
 
+// Retirada inline — formata ao sair
+document.getElementById('withdrawAmountInline').addEventListener('blur', function() {
+  const v = parseFloat(this.value.replace(',', '.'));
+  if (!isNaN(v) && v > 0) this.value = v.toFixed(2);
+});
+document.getElementById('withdrawAmountInline').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doWithdraw();
+});
+
+// Free mode — raw decimal inputs (no mask)
+const fFreeAmountEl = document.getElementById('fFreeAmount');
+
+fFreeAmountEl.addEventListener('input', updatePreview);
+
+// Ao sair do campo: formata para 2 casas decimais (ex: "5" → "5.00")
+fFreeAmountEl.addEventListener('blur', function() {
+  const v = parseFloat(this.value.replace(',', '.'));
+  if (!isNaN(v) && v > 0) this.value = v.toFixed(2);
+  updatePreview();
+});
+
+// Ao entrar no campo: remove zeros extras pra edição ficar limpa
+fFreeAmountEl.addEventListener('focus', function() {
+  const v = parseFloat(this.value);
+  if (!isNaN(v)) this.value = v;
+});
+
+document.getElementById('fFreeOdd').addEventListener('input', updatePreview);
+
 function updatePreview() {
-  const units = parseFloat(document.getElementById('fUnits').value) || 0;
-  const uv = unitValue();
-  document.getElementById('betPreview').textContent = fmt(units * uv);
+  if (betMode === 'free') {
+    const amount = parseFloat(document.getElementById('fFreeAmount').value) || 0;
+    document.getElementById('betPreview').textContent = fmt(amount);
+  } else {
+    const units = parseFloat(document.getElementById('fUnits').value) || 0;
+    const uv = unitValue();
+    document.getElementById('betPreview').textContent = fmt(units * uv);
+  }
+}
+
+// ─── Bet Mode Toggle ─────────────────────────────────────────────────────────
+function setBetMode(mode) {
+  betMode = mode;
+  const isUnit = mode === 'unit';
+  document.getElementById('unitModeFields').style.display = isUnit ? '' : 'none';
+  document.getElementById('freeModeFields').style.display = isUnit ? 'none' : '';
+  document.getElementById('modeUnitBtn').classList.toggle('active', isUnit);
+  document.getElementById('modeFreebtn').classList.toggle('active', !isUnit);
+  updatePreview();
 }
 
 // ─── Launch ──────────────────────────────────────────────────────────────────
 function launchBet() {
-  const units = parseFloat(document.getElementById('fUnits').value);
-  const odd   = parseFloat(document.getElementById('fOdd').value);
-  const note  = document.getElementById('fNote').value.trim();
+  const note = document.getElementById('fNote').value.trim();
 
-  if (!units || units <= 0) return toast('Informe as Unidades.');
-  if (!odd || odd <= 0)    return toast('Odd deve ser maior que 0.');
+  let units, odd, amount;
 
-  const uv = unitValue();
-  const amount = units * uv;
+  if (betMode === 'free') {
+    amount = parseFloat(document.getElementById('fFreeAmount').value);
+    odd    = parseFloat(document.getElementById('fFreeOdd').value);
+    if (!amount || amount <= 0) return toast('Informe o Valor da aposta.');
+    if (!odd    || odd    <= 1) return toast('Odd deve ser maior que 1.');
+    units = amount / unitValue(); // store equivalent units for reference
+  } else {
+    units  = parseFloat(document.getElementById('fUnits').value);
+    odd    = parseFloat(document.getElementById('fOdd').value);
+    if (!units || units <= 0) return toast('Informe as Unidades.');
+    if (!odd   || odd   <= 0) return toast('Odd deve ser maior que 0.');
+    amount = units * unitValue();
+  }
 
   if (amount > state.bancaCurrent) return toast('Saldo insuficiente na banca.');
 
   const bet = {
     id: Date.now(),
-    units, odd, note,
+    units: parseFloat(units.toFixed(2)),
+    odd, note,
     amount,
     potential: amount * odd,
     profit: amount * (odd - 1),
     status: 'pending',
+    mode: betMode,          // 'unit' | 'free'
     ts: new Date().toISOString()
   };
 
@@ -213,7 +248,7 @@ function renderStats() {
   const statsRow = document.getElementById('statsRow');
   statsRow.innerHTML = `
     <div class="stat-card">
-      <p class="mono" style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em">Banca Total</p>
+      <p class="mono" style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em">Investimento</p>
       <p class="mono font-bold text-xl mt-1" style="color:var(--text)">${fmt(state.bancaTotal)}</p>
     </div>
     <div class="stat-card">
@@ -311,9 +346,11 @@ function exportCSV() {
 function confirmReset() {
   if (!confirm('Resetar toda a banca e histórico? Esta ação é irreversível.')) return;
   localStorage.removeItem('bancaos_v1');
-  state = { bancaTotal: 1000, bancaCurrent: 1000, unitPercent: 1, bets: [], filter: 'all' };
-  document.getElementById('bancaTotal').value = 1000;
-  document.getElementById('unitPercent').value = 1;
+  state = { bancaTotal: 0, bancaCurrent: 0, unitPercent: 1, bets: [], filter: 'all' };
+  document.getElementById('depositAmount').value = '';
+  document.getElementById('withdrawAmountInline').value = '';
+  document.getElementById('unitPercent').value = '1.0';
+  percentDigits = '10';
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
   save(); renderAll();
   toast('Banca resetada.');
@@ -327,6 +364,8 @@ function fmt(n) {
 function clearForm() {
   document.getElementById('fUnits').value = '10';
   document.getElementById('fOdd').value = '200';
+  document.getElementById('fFreeAmount').value = '';
+  document.getElementById('fFreeOdd').value = '';
   document.getElementById('fNote').value = '';
   updatePreview();
 }
@@ -364,4 +403,51 @@ function revealEmail(btn) {
     <a href="mailto:${email}" style="color:var(--accent); text-decoration:none">${email}</a>
     <span style="color:var(--muted); font-size:10px">· clique p/ copiar</span>
   `;
+}
+
+// ─── Withdraw ─────────────────────────────────────────────────────────────────
+function openWithdraw() {
+  const modal = document.getElementById('withdrawModal');
+  document.getElementById('withdrawAmount').value = '';
+  document.getElementById('withdrawHint').textContent = '';
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('withdrawAmount').focus(), 50);
+}
+
+function closeWithdraw() {
+  document.getElementById('withdrawModal').style.display = 'none';
+}
+
+// ─── Depósito & Retirada ────────────────────────────────────────────────────────────
+function doDeposit() {
+  const el = document.getElementById('depositAmount');
+  const v = parseFloat(el.value.replace(',', '.'));
+  if (!v || v <= 0) return toast('Informe um valor de depósito.');
+  state.bancaTotal   += v;
+  state.bancaCurrent += v;
+  el.value = '';
+  save(); renderAll();
+  toast(`Depósito de ${fmt(v)} registrado ✓`);
+}
+
+function doWithdraw() {
+  const el = document.getElementById('withdrawAmountInline');
+  const v = parseFloat(el.value.replace(',', '.'));
+  if (!v || v <= 0) return toast('Informe um valor de retirada.');
+
+  // Desconta da banca atual primeiro; excedente sai do investimento
+  const fromCurrent = Math.min(v, state.bancaCurrent);
+  const fromTotal   = v > state.bancaCurrent ? v - state.bancaCurrent : 0;
+
+  state.bancaCurrent -= fromCurrent;
+  state.bancaTotal   -= (fromCurrent + fromTotal);
+
+  el.value = '';
+  save(); renderAll();
+
+  if (fromTotal > 0) {
+    toast(`Retirada de ${fmt(v)} — investimento ajustado.`);
+  } else {
+    toast(`Retirada de ${fmt(v)} registrada ✓`);
+  }
 }

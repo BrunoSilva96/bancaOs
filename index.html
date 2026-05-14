@@ -13,6 +13,81 @@
 </head>
 <body>
 
+<!-- Welcome Overlay — shown only on first visit -->
+<div id="welcomeOverlay" style="
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:#0a0a0f;
+  align-items:center; justify-content:center; padding:24px;
+  flex-direction:column; gap:0;">
+
+  <!-- glow bg -->
+  <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
+    <div style="position:absolute;width:600px;height:600px;border-radius:50%;
+      background:radial-gradient(circle,rgba(0,229,160,0.07) 0%,transparent 70%);
+      top:-100px;right:-100px"></div>
+    <div style="position:absolute;width:500px;height:500px;border-radius:50%;
+      background:radial-gradient(circle,rgba(255,77,109,0.05) 0%,transparent 70%);
+      bottom:-80px;left:-80px"></div>
+  </div>
+
+  <div style="position:relative;width:100%;max-width:420px;text-align:center">
+
+    <!-- Logo -->
+    <p class="mono" style="font-size:11px;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:16px">
+      Bem-vindo ao
+    </p>
+    <h1 style="font-family:'Syne',sans-serif;font-size:clamp(36px,8vw,52px);font-weight:800;
+               letter-spacing:-.02em;line-height:1;margin-bottom:8px">
+      BANCA<span style="color:var(--accent)">OS</span>
+    </h1>
+    <p class="mono" style="font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:40px">
+      Gestão de Unidades
+    </p>
+
+    <!-- Card de aviso -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;
+                padding:24px 28px;margin-bottom:28px;text-align:left">
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:18px">💾</span>
+        <p class="mono" style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.12em">
+          Seus dados são locais
+        </p>
+      </div>
+
+      <p style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:16px">
+        Todas as apostas ficam salvas <strong style="color:var(--accent)">somente neste navegador</strong>.
+        Se você limpar o cache ou trocar de dispositivo, os dados somem.
+      </p>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+                  padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <span style="font-size:16px;flex-shrink:0;margin-top:1px">📥</span>
+        <p style="font-size:13px;color:var(--muted);line-height:1.6">
+          De tempos em tempos, use o botão <strong style="color:var(--text)">↓ CSV</strong> no histórico
+          para guardar suas apostas em arquivo — é a forma mais segura de manter o registro a longo prazo.
+        </p>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <button onclick="dismissWelcome()" style="
+      width:100%;padding:16px;border:none;border-radius:12px;
+      background:var(--accent);color:#000;
+      font-family:'Syne',sans-serif;font-size:15px;font-weight:800;
+      letter-spacing:.04em;text-transform:uppercase;
+      cursor:pointer;transition:all .2s;
+      box-shadow:0 0 32px rgba(0,229,160,0.25)">
+      Entendido, vamos lá →
+    </button>
+
+    <p class="mono" style="font-size:10px;color:var(--muted);margin-top:16px;letter-spacing:.05em">
+      Esta mensagem não aparecerá novamente.
+    </p>
+  </div>
+</div>
+
+
 <div class="max-w-4xl mx-auto px-4 py-8">
 
   <!-- Header -->
@@ -55,17 +130,30 @@
       <div class="card">
         <p class="mono text-xs mb-4" style="color:var(--accent); text-transform:uppercase; letter-spacing:.12em">⚙ Configuração</p>
 
-        <!-- Investimento Inicial — destaque -->
-        <label style="color:var(--accent)">Investimento Inicial (R$)</label>
-        <div class="flex gap-2 mb-4">
-          <input type="text" inputmode="decimal" id="bancaTotal" class="num-input" placeholder="ex: 100000 → 1000.00"
-            style="border-color: var(--accent); font-size:18px; padding: 12px 16px; font-weight:700;">
-          <button id="bancaLockBtn" onclick="toggleBancaLock()"
-            class="btn btn-ghost"
-            style="padding:10px 14px; shrink:0; border-color:var(--accent); color:var(--accent)"
-            title="Confirmar valor">
-            ✓
-          </button>
+        <!-- Depósito -->
+        <div class="mb-3">
+          <label style="color:var(--accent)">Depósito (R$)</label>
+          <div class="flex gap-2">
+            <input type="text" inputmode="decimal" id="depositAmount" class="num-input" placeholder="ex: 500.00"
+              style="border-color:var(--accent); font-size:18px; padding:12px 16px; font-weight:700;">
+            <button onclick="doDeposit()" class="btn btn-ghost"
+              style="padding:10px 16px; border-color:var(--accent); color:var(--accent)" title="Confirmar depósito">
+              ↑
+            </button>
+          </div>
+        </div>
+
+        <!-- Retirada -->
+        <div class="mb-4">
+          <label style="color:var(--accent2)">Retirada (R$)</label>
+          <div class="flex gap-2">
+            <input type="text" inputmode="decimal" id="withdrawAmountInline" class="num-input" placeholder="ex: 50.00"
+              style="border-color:var(--accent2); font-size:18px; padding:12px 16px; font-weight:700;">
+            <button onclick="doWithdraw()" class="btn btn-ghost"
+              style="padding:10px 16px; border-color:var(--accent2); color:var(--accent2)" title="Confirmar retirada">
+              ↓
+            </button>
+          </div>
         </div>
 
         <!-- % por Unidade -->
@@ -82,17 +170,43 @@
 
       <!-- Form -->
       <div class="card">
-        <p class="mono text-xs mb-4" style="color:var(--accent3); text-transform:uppercase; letter-spacing:.12em">✦ Nova Aposta</p>
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label>Unidades</label>
-            <input type="text" inputmode="decimal" id="fUnits" class="num-input" placeholder="ex: 05 → 0.5" value="10">
-          </div>
-          <div>
-            <label>Odd</label>
-            <input type="text" inputmode="decimal" id="fOdd" class="num-input" placeholder="ex: 145 → 1.45" value="200">
+        <div class="flex items-center justify-between mb-4">
+          <p class="mono text-xs" style="color:var(--accent3); text-transform:uppercase; letter-spacing:.12em">✦ Nova Aposta</p>
+          <!-- Mode Toggle -->
+          <div class="bet-mode-toggle" id="betModeToggle">
+            <button id="modeUnitBtn" class="mode-btn active" onclick="setBetMode('unit')">Por Unidade</button>
+            <button id="modeFreebtn" class="mode-btn" onclick="setBetMode('free')">Livre</button>
           </div>
         </div>
+
+        <!-- Unit Mode -->
+        <div id="unitModeFields">
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label>Unidades</label>
+              <input type="text" inputmode="decimal" id="fUnits" class="num-input" placeholder="ex: 05 → 0.5" value="10">
+            </div>
+            <div>
+              <label>Odd</label>
+              <input type="text" inputmode="decimal" id="fOdd" class="num-input" placeholder="ex: 145 → 1.45" value="200">
+            </div>
+          </div>
+        </div>
+
+        <!-- Free Mode -->
+        <div id="freeModeFields" style="display:none">
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label>Valor (R$)</label>
+              <input type="text" inputmode="decimal" id="fFreeAmount" class="num-input" placeholder="ex: 50.00">
+            </div>
+            <div>
+              <label>Odd</label>
+              <input type="text" inputmode="decimal" id="fFreeOdd" class="num-input" placeholder="ex: 1.85">
+            </div>
+          </div>
+        </div>
+
         <div class="mb-4">
           <label>Observação</label>
           <input type="text" id="fNote" placeholder="Time / Campeonato / Fonte">
@@ -103,7 +217,7 @@
           <span class="mono font-bold" id="betPreview" style="color:var(--accent3)">R$ 0,00</span>
         </div>
 
-        <button class="btn btn-accent w-full" onclick="launchBet()">▶ Lançar Aposta</button>
+        <button class="btn btn-accent w-full" onclick="launchBet()">▶ Registrar Aposta</button>
       </div>
     </div>
 
