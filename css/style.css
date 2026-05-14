@@ -34,6 +34,15 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--accent); }
 input::placeholder { color: var(--muted); }
+/* remove arrows dos inputs numéricos */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+input.num-input {
+  text-align: right;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.05em;
+}
 label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
 .btn {
   font-family: 'Syne', sans-serif;

@@ -21,11 +21,55 @@ function load() {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 load();
-document.getElementById('bancaTotal').value = state.bancaTotal;
-document.getElementById('unitPercent').value = state.unitPercent;
+document.getElementById('bancaTotal').value = parseFloat(state.bancaTotal).toFixed(2);
+
+// inicializar dígitos brutos do % a partir do estado salvo
+let percentDigits = String(Math.round(state.unitPercent * 10)).replace('.', '');
+document.getElementById('unitPercent').value =
+  percentDigits.length === 1 ? percentDigits + '.0'
+  : (parseInt(percentDigits, 10) / 10).toFixed(1);
+// se já havia valor salvo, travar campo
+if (state.bancaTotal > 0) lockBanca();
 renderAll();
 
 // ─── Config ──────────────────────────────────────────────────────────────────
+function lockBanca() {
+  const input = document.getElementById('bancaTotal');
+  const btn = document.getElementById('bancaLockBtn');
+  input.readOnly = true;
+  input.style.opacity = '0.7';
+  input.style.borderColor = 'var(--border)';
+  btn.textContent = '✏ Editar';
+  btn.title = 'Clique para editar';
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+}
+
+function unlockBanca() {
+  const input = document.getElementById('bancaTotal');
+  const btn = document.getElementById('bancaLockBtn');
+  input.readOnly = false;
+  input.style.opacity = '1';
+  input.style.borderColor = 'var(--accent)';
+  btn.textContent = '✓';
+  btn.title = 'Confirmar valor';
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+  input.focus();
+}
+
+function toggleBancaLock() {
+  const input = document.getElementById('bancaTotal');
+  if (input.readOnly) {
+    unlockBanca();
+  } else {
+    if (!parseFloat(input.value)) return toast('Informe o investimento inicial.');
+    onConfigChange();
+    lockBanca();
+    toast('Investimento inicial confirmado ✓');
+  }
+}
+
 function onConfigChange() {
   const bt = parseFloat(document.getElementById('bancaTotal').value) || 0;
   const up = parseFloat(document.getElementById('unitPercent').value) || 1;
@@ -52,12 +96,37 @@ function applyMask(inputEl, divisor, decimals) {
   updatePreview();
 }
 
+// % por Unidade — keydown para rastrear dígitos brutos sem reler o campo formatado
+function renderPercent(el) {
+  if (!percentDigits) { el.value = ''; onConfigChange(); return; }
+  el.value = percentDigits.length === 1
+    ? percentDigits + '.0'                        // '1' → '1.0'
+    : (parseInt(percentDigits, 10) / 10).toFixed(1); // '15' → '1.5'
+  onConfigChange();
+}
+document.getElementById('unitPercent').addEventListener('keydown', function(e) {
+  if (e.key >= '0' && e.key <= '9') {
+    e.preventDefault();
+    percentDigits += e.key;
+    renderPercent(this);
+  } else if (e.key === 'Backspace') {
+    e.preventDefault();
+    percentDigits = percentDigits.slice(0, -1);
+    renderPercent(this);
+  }
+});
+
 document.getElementById('fOdd').addEventListener('input', function() {
-  applyMask(this, 100, 2); // 145 → 1.45
+  applyMask(this, 100, 2);
 });
 
 document.getElementById('fUnits').addEventListener('input', function() {
-  applyMask(this, 10, 1); // 05 → 0.5
+  applyMask(this, 10, 1);
+});
+
+document.getElementById('bancaTotal').addEventListener('input', function() {
+  applyMask(this, 100, 2);
+  onConfigChange();
 });
 
 function updatePreview() {
@@ -278,4 +347,21 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── Contact ──────────────────────────────────────────────────────────────────
+function revealEmail(btn) {
+  // email montado em partes — bots não conseguem scrapear
+  const parts = ['brunosilva', 'brait', '@', 'gmail', '.com'];
+  const email = parts.join('');
+  if (btn.dataset.revealed) {
+    navigator.clipboard.writeText(email).then(() => toast('Email copiado ✓'));
+    return;
+  }
+  btn.dataset.revealed = '1';
+  btn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+    <a href="mailto:${email}" style="color:var(--accent); text-decoration:none">${email}</a>
+    <span style="color:var(--muted); font-size:10px">· clique p/ copiar</span>
+  `;
 }

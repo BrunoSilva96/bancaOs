@@ -54,16 +54,26 @@
       <!-- Config -->
       <div class="card">
         <p class="mono text-xs mb-4" style="color:var(--accent); text-transform:uppercase; letter-spacing:.12em">⚙ Configuração</p>
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div>
-            <label>Banca Total (R$)</label>
-            <input type="number" id="bancaTotal" placeholder="1000.00" step="0.01" min="0" oninput="onConfigChange()">
-          </div>
-          <div>
-            <label>% por Unidade</label>
-            <input type="number" id="unitPercent" placeholder="1" step="0.1" min="0.1" max="100" oninput="onConfigChange()">
-          </div>
+
+        <!-- Investimento Inicial — destaque -->
+        <label style="color:var(--accent)">Investimento Inicial (R$)</label>
+        <div class="flex gap-2 mb-4">
+          <input type="text" inputmode="decimal" id="bancaTotal" class="num-input" placeholder="ex: 100000 → 1000.00"
+            style="border-color: var(--accent); font-size:18px; padding: 12px 16px; font-weight:700;">
+          <button id="bancaLockBtn" onclick="toggleBancaLock()"
+            class="btn btn-ghost"
+            style="padding:10px 14px; shrink:0; border-color:var(--accent); color:var(--accent)"
+            title="Confirmar valor">
+            ✓
+          </button>
         </div>
+
+        <!-- % por Unidade -->
+        <div class="mb-4">
+          <label>% por Unidade</label>
+          <input type="text" inputmode="decimal" id="unitPercent" class="num-input" placeholder="ex: 1.5">
+        </div>
+
         <div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--surface2); border:1px solid var(--border)">
           <span class="mono text-xs" style="color:var(--muted)">1 UNIDADE =</span>
           <span class="mono font-bold" id="unitValue" style="color:var(--accent)">R$ 0,00</span>
@@ -76,11 +86,11 @@
         <div class="grid grid-cols-2 gap-3 mb-3">
           <div>
             <label>Unidades</label>
-            <input type="text" inputmode="decimal" id="fUnits" placeholder="ex: 05 → 0.5" value="10">
+            <input type="text" inputmode="decimal" id="fUnits" class="num-input" placeholder="ex: 05 → 0.5" value="10">
           </div>
           <div>
             <label>Odd</label>
-            <input type="text" inputmode="decimal" id="fOdd" placeholder="ex: 145 → 1.45" value="200">
+            <input type="text" inputmode="decimal" id="fOdd" class="num-input" placeholder="ex: 145 → 1.45" value="200">
           </div>
         </div>
         <div class="mb-4">
@@ -142,6 +152,27 @@
         <button class="btn btn-ghost" style="padding:10px 14px; shrink:0" onclick="copyPix()" title="Copiar chave">⧉</button>
       </div>
       <p class="mono text-xs mt-2" id="pixCopyMsg" style="color:var(--accent); opacity:0; transition:opacity .3s">Chave copiada ✓</p>
+    </div>
+  </div>
+</div>
+
+<!-- Contact Footer -->
+<div class="max-w-4xl mx-auto px-4 pb-10">
+  <div class="card flex flex-col items-center text-center gap-4" style="border-color:rgba(255,77,109,0.1)">
+    <p class="mono text-xs" style="color:var(--muted); text-transform:uppercase; letter-spacing:.12em">✉ Entre em Contato</p>
+    <p style="font-size:14px; color:var(--text); max-width:380px; line-height:1.6">
+      Sugestões, dúvidas ou parcerias?<br>Fale comigo diretamente.
+    </p>
+    <div class="flex gap-3 flex-wrap justify-center">
+      <a
+        href="https://www.instagram.com/_bruno.arauj/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-ghost"
+        style="display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-size:12px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+        @_bruno.arauj
+      </a>
     </div>
   </div>
 </div>
